@@ -136,6 +136,19 @@ async function main() {
                 }
             }
         }
+        
+        // Find most common token from query n-grams
+        console.log("\n  N-gram Analysis:");
+        console.log("-".repeat(70));
+        const mostCommonTokens = model.findMostCommonTokenFromQueryNgrams(query, 2, false, 5);
+        if (mostCommonTokens.length > 0) {
+            console.log("  Most Common Tokens from Query N-grams (Bigrams):");
+            mostCommonTokens.forEach(([token, count], index) => {
+                console.log(`    ${index + 1}. ${token} (appears in ${count} matching n-gram${count !== 1 ? 's' : ''})`);
+            });
+        } else {
+            console.log("  No matching n-grams found in corpus.");
+        }
 
         // Rank sentences
         console.log("\n" + "=".repeat(70));

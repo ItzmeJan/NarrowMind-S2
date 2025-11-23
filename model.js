@@ -506,5 +506,63 @@ export class NarrowMindModel {
         }
         return map;
     }
+    
+    /**
+     * Generate n-grams from a query text
+     * @param {string} query - Query text
+     * @param {number} n - N-gram size (default: 2)
+     * @param {boolean} filterFillers - Whether to filter filler words (default: false)
+     * @returns {Array<Array<string>>} Array of n-gram arrays
+     */
+    generateQueryNgrams(query, n = 2, filterFillers = false) {
+        const tokens = this.parseTokensStemmed(query, filterFillers);
+        if (tokens.length < n) return [];
+        
+        const ngrams = [];
+        for (let i = 0; i <= tokens.length - n; i++) {
+            const ngram = [];
+            for (let j = 0; j < n; j++) {
+                ngram.push(tokens[i + j]);
+            }
+            ngrams.push(ngram);
+        }
+        return ngrams;
+    }
+    
+    /**
+     * Find the most common token from query n-grams that appear in corpus n-grams
+     * @param {string} query - Query text
+     * @param {number} ngramSize - N-gram size (default: 2)
+     * @param {boolean} filterFillers - Whether to filter filler words (default: false)
+     * @param {number} topN - Number of top tokens to return (default: 5)
+     * @returns {Array<[string, number]>} Array of [token, count] pairs, sorted by count
+     */
+    findMostCommonTokenFromQueryNgrams(query, ngramSize = 2, filterFillers = false, topN = 5) {
+        const queryNgrams = this.generateQueryNgrams(query, ngramSize, filterFillers);
+        const corpusNgrams = this.ngram(ngramSize);
+        
+        // Count tokens that appear in matching n-grams
+        const tokenCounts = new Map();
+        
+        // For each query n-gram, find matching corpus n-grams
+        for (const queryNgram of queryNgrams) {
+            for (const corpusNgram of corpusNgrams) {
+                // Check if query n-gram matches corpus n-gram (order matters)
+                const matches = queryNgram.every((token, idx) => token === corpusNgram[idx]);
+                
+                if (matches) {
+                    // Count all tokens in the matching n-gram
+                    for (const token of corpusNgram) {
+                        tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+                    }
+                }
+            }
+        }
+        
+        // Sort by count and return top N
+        return Array.from(tokenCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, topN);
+    }
 }
 
