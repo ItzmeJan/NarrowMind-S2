@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Narrowmind JS version",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,9 +14,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ItzmeJan/NarrowMind-L2/issues"
   },
-  "homepage": "https://github.com/ItzmeJan/NarrowMind-L2#readme"
+  "homepage": "https://github.com/ItzmeJan/NarrowMind-L2#readme",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "process": "^0.11.10",
+    "readline": "^1.3.0"
+  }
 }
