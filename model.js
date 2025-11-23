@@ -219,18 +219,26 @@ export class NarrowMindModel {
     }
 
     /**
-     * Rank sentences by relevance to a query
+     * Rank sentences by relevance to a query (using combined TF-IDF + character similarity)
      * @param {string} query - Search query
      * @param {number} topN - Number of top results to return (0 = all)
+     * @param {number} tfidfWeight - Weight for TF-IDF similarity (default 0.7)
+     * @param {number} charWeight - Weight for character similarity (default 0.3)
      * @returns {Array<[string, number]>} Array of [sentence, score] pairs, sorted by score
      */
-    rankSentences(query, topN = 0) {
+    rankSentences(query, topN = 0, tfidfWeight = 0.7, charWeight = 0.3) {
         if (!query || typeof query !== 'string') return [];
 
         const sentenceRanks = [];
         
+        // Use original sentences for output, but stemmed tokens for calculations
         for (const sentence of this.sentences) {
-            const similarity = this.calculateTFIDFSimilarity(query, sentence);
+            const similarity = this.calculateCombinedSimilarity(
+                query, 
+                sentence, 
+                tfidfWeight, 
+                charWeight
+            );
             if (similarity > 0) {
                 sentenceRanks.push([sentence, similarity]);
             }
@@ -244,25 +252,28 @@ export class NarrowMindModel {
     }
 
     /**
-     * Get TF value for a token in the corpus
+     * Get TF value for a token in the corpus (using stemmed tokens)
      * @param {string} token - Token to get TF for
      * @returns {number} Term frequency
      */
     getTF(token) {
-        return this.calculateTF(token.toLowerCase(), this.tokens);
+        const stemmedToken = this.stem(token.toLowerCase());
+        return this.calculateTF(stemmedToken, this.stemmedTokens);
     }
 
     /**
      * Get statistics for a query token
      * @param {string} token - Token to analyze
-     * @returns {Object} Object with TF and IDF values
+     * @returns {Object} Object with TF and IDF values (using stemmed version)
      */
     getTokenStats(token) {
         const normalizedToken = token.toLowerCase();
+        const stemmedToken = this.stem(normalizedToken);
         return {
             token: normalizedToken,
+            stemmed: stemmedToken,
             tf: this.getTF(normalizedToken),
-            idf: this.getIDF(normalizedToken)
+            idf: this.getIDF(stemmedToken)
         };
     }
 }
