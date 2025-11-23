@@ -52,9 +52,9 @@ function displayModelInfo(model) {
     
     // Default weights
     console.log("\n  Scoring Weight Configuration:");
-    console.log("    • TF-IDF:           95%");
-    console.log("    • Character:        5%");
-    console.log("    • Co-occurrence:    0% (disabled by default)");
+    console.log("    • TF-IDF:           70%");
+    console.log("    • Character:       10%");
+    console.log("    • Co-occurrence:   20% (Jaccard)");
     console.log("    Note: Sentence ranking uses weighted combination of these metrics");
     
     // Top words by frequency
