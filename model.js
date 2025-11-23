@@ -264,15 +264,17 @@ export class NarrowMindModel {
     }
 
     /**
-     * Rank sentences by relevance to a query (using combined TF-IDF + character similarity)
+     * Rank sentences by relevance to a query (using combined TF-IDF + character similarity + optional co-occurrence)
      * @param {string} query - Search query
      * @param {number} topN - Number of top results to return (0 = all)
      * @param {number} tfidfWeight - Weight for TF-IDF similarity (default 0.95)
      * @param {number} charWeight - Weight for character similarity (default 0.05)
      * @param {boolean} filterWords - Whether to filter out filler words (default: false)
+     * @param {number} coOccurrenceWeight - Weight for co-occurrence similarity (default: 0, disabled)
+     * @param {string} coOccurrenceMethod - Co-occurrence method: 'jaccard' or 'pmi' (default: 'jaccard')
      * @returns {Array<[string, number]>} Array of [sentence, score] pairs, sorted by score
      */
-    rankSentences(query, topN = 0, tfidfWeight = 0.95, charWeight = 0.05, filterWords = false) {
+    rankSentences(query, topN = 0, tfidfWeight = 0.95, charWeight = 0.05, filterWords = false, coOccurrenceWeight = 0, coOccurrenceMethod = 'jaccard') {
         if (!query || typeof query !== 'string') return [];
 
         const sentenceRanks = [];
@@ -284,7 +286,9 @@ export class NarrowMindModel {
                 sentence, 
                 tfidfWeight, 
                 charWeight,
-                filterWords
+                filterWords,
+                coOccurrenceWeight,
+                coOccurrenceMethod
             );
             if (similarity > 0) {
                 sentenceRanks.push([sentence, similarity]);
