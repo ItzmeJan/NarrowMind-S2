@@ -1,3 +1,5 @@
+import { stem } from './stem.js';
+
 /**
  * NarrowMind S2 (Statistical 2) Model
  * TF-IDF based sentence ranking system
@@ -12,32 +14,6 @@ export class NarrowMindModel {
         // Also store stemmed tokens for IDF calculation
         this.stemmedTokens = this.parseTokensStemmed(data);
         this.idfCache = this.precomputeIDF();
-    }
-
-    /**
-     * Stem a token by removing common suffixes
-     * @param {string} token - Token to stem
-     * @returns {string} Stemmed token
-     */
-    stem(token) {
-        if (!token || token.length < 3) return token;
-        
-        const lowerToken = token.toLowerCase();
-        
-        // Remove common suffixes (order matters - longer suffixes first)
-        const suffixes = [
-            'ing', 'ed', 'er', 'est', 'ly', 'tion', 'sion', 
-            'ness', 'ment', 'able', 'ible', 'ful', 'less',
-            's', 'es', 'ies'
-        ];
-        
-        for (const suffix of suffixes) {
-            if (lowerToken.endsWith(suffix) && lowerToken.length > suffix.length + 2) {
-                return lowerToken.slice(0, -suffix.length);
-            }
-        }
-        
-        return lowerToken;
     }
 
     /**
@@ -57,7 +33,7 @@ export class NarrowMindModel {
      */
     parseTokensStemmed(text) {
         const tokens = this.parseTokens(text);
-        return tokens.map(token => this.stem(token.toLowerCase()));
+        return tokens.map(token => stem(token.toLowerCase()));
     }
 
     /**
@@ -257,7 +233,7 @@ export class NarrowMindModel {
      * @returns {number} Term frequency
      */
     getTF(token) {
-        const stemmedToken = this.stem(token.toLowerCase());
+        const stemmedToken = stem(token.toLowerCase());
         return this.calculateTF(stemmedToken, this.stemmedTokens);
     }
 
@@ -268,7 +244,7 @@ export class NarrowMindModel {
      */
     getTokenStats(token) {
         const normalizedToken = token.toLowerCase();
-        const stemmedToken = this.stem(normalizedToken);
+        const stemmedToken = stem(normalizedToken);
         return {
             token: normalizedToken,
             stemmed: stemmedToken,
