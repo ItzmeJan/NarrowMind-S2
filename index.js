@@ -45,7 +45,7 @@ async function main() {
         console.log("-".repeat(50));
         for (const token of queryTokens) {
             const stats = model.getTokenStats(token);
-            console.log(`${stats.token}: TF=${stats.tf.toFixed(4)}, IDF=${stats.idf.toFixed(4)}`);
+            console.log(`${stats.token} (stemmed: ${stats.stemmed}): TF=${stats.tf.toFixed(4)}, IDF=${stats.idf.toFixed(4)}`);
         }
 
         // Rank sentences

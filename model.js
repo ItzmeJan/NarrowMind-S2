@@ -7,48 +7,41 @@ export class NarrowMindModel {
         this.rawData = data;
         this.tokens = this.parseTokens(data);
         this.sentences = this.parseSentences(data);
+        // Use stemmed tokens for corpus documents (for calculations)
         this.corpusDocs = this.sentences.map(s => this.parseTokensStemmed(s));
+        // Also store stemmed tokens for IDF calculation
+        this.stemmedTokens = this.parseTokensStemmed(data);
         this.idfCache = this.precomputeIDF();
     }
 
     /**
-     * Basic word stemming - reduces words to their root form
-     * @param {string} word - Word to stem
-     * @returns {string} Stemmed word
+     * Stem a token by removing common suffixes
+     * @param {string} token - Token to stem
+     * @returns {string} Stemmed token
      */
-    stemWord(word) {
-        if (!word || word.length < 3) return word;
+    stem(token) {
+        if (!token || token.length < 3) return token;
         
-        const lowerWord = word.toLowerCase();
+        const lowerToken = token.toLowerCase();
         
-        // List of suffixes: [suffix, minLength, replacement]
-        // replacement is null if just removing the suffix
+        // Remove common suffixes (order matters - longer suffixes first)
         const suffixes = [
-            ['ies', 4, 'y'],
-            ['es', 4, null],
-            ['s', 3, null],
-            ['ing', 5, null],
-            ['ed', 4, null],
-            ['er', 4, null],
-            ['est', 5, null],
-            ['ly', 4, null],
-            ['tion', 6, null],
-            ['ness', 6, null],
-            ['ment', 6, null]
+            'ing', 'ed', 'er', 'est', 'ly', 'tion', 'sion', 
+            'ness', 'ment', 'able', 'ible', 'ful', 'less',
+            's', 'es', 'ies'
         ];
         
-        for (const [suffix, minLength, replacement] of suffixes) {
-            if (lowerWord.endsWith(suffix) && lowerWord.length > minLength) {
-                const stem = lowerWord.slice(0, -suffix.length);
-                return replacement ? stem + replacement : stem;
+        for (const suffix of suffixes) {
+            if (lowerToken.endsWith(suffix) && lowerToken.length > suffix.length + 2) {
+                return lowerToken.slice(0, -suffix.length);
             }
         }
         
-        return lowerWord;
+        return lowerToken;
     }
 
     /**
-     * Parse text into tokens (words)
+     * Parse text into tokens (words) - original tokens for output
      * @param {string} text - Input text
      * @returns {string[]} Array of tokens
      */
@@ -58,14 +51,13 @@ export class NarrowMindModel {
     }
 
     /**
-     * Parse text into stemmed tokens (words)
+     * Parse text into stemmed tokens - used for calculations only
      * @param {string} text - Input text
      * @returns {string[]} Array of stemmed tokens
      */
     parseTokensStemmed(text) {
-        if (!text || typeof text !== 'string') return [];
         const tokens = this.parseTokens(text);
-        return tokens.map(token => this.stemWord(token.toLowerCase()));
+        return tokens.map(token => this.stem(token.toLowerCase()));
     }
 
     /**
@@ -106,13 +98,12 @@ export class NarrowMindModel {
     }
 
     /**
-     * Precompute IDF values for all tokens in the corpus
+     * Precompute IDF values for all tokens in the corpus (using stemmed tokens)
      * @returns {Map<string, number>} Map of token to IDF value
      */
     precomputeIDF() {
         const idfMap = new Map();
-        // Get all unique stemmed tokens from corpus documents
-        const allTokens = [...new Set(this.corpusDocs.flat())];
+        const allTokens = [...new Set(this.stemmedTokens)];
         
         for (const token of allTokens) {
             idfMap.set(token, this.calculateIDF(token, this.corpusDocs));
@@ -137,12 +128,58 @@ export class NarrowMindModel {
     }
 
     /**
-     * Calculate TF-IDF cosine similarity between two sentences
+     * Calculate character-level similarity using Levenshtein distance
+     * @param {string} str1 - First string
+     * @param {string} str2 - Second string
+     * @returns {number} Similarity score (0-1), where 1 is identical
+     */
+    calculateCharacterSimilarity(str1, str2) {
+        if (!str1 || !str2) return 0;
+        if (str1 === str2) return 1;
+        
+        const s1 = str1.toLowerCase();
+        const s2 = str2.toLowerCase();
+        
+        // Use longest common subsequence (LCS) for better character-level similarity
+        const lcsLength = this.longestCommonSubsequence(s1, s2);
+        const maxLength = Math.max(s1.length, s2.length);
+        
+        if (maxLength === 0) return 1;
+        return lcsLength / maxLength;
+    }
+
+    /**
+     * Calculate longest common subsequence length
+     * @param {string} str1 - First string
+     * @param {string} str2 - Second string
+     * @returns {number} Length of LCS
+     */
+    longestCommonSubsequence(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+        
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (str1[i - 1] === str2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        
+        return dp[m][n];
+    }
+
+    /**
+     * Calculate TF-IDF cosine similarity between two sentences (using stemmed tokens)
      * @param {string} sentence1 - First sentence
      * @param {string} sentence2 - Second sentence
      * @returns {number} Cosine similarity score (0-1)
      */
     calculateTFIDFSimilarity(sentence1, sentence2) {
+        // Use stemmed tokens for calculations
         const words1 = this.parseTokensStemmed(sentence1);
         const words2 = this.parseTokensStemmed(sentence2);
 
@@ -167,18 +204,41 @@ export class NarrowMindModel {
     }
 
     /**
-     * Rank sentences by relevance to a query
+     * Calculate combined similarity (TF-IDF + Character-level)
+     * @param {string} sentence1 - First sentence
+     * @param {string} sentence2 - Second sentence
+     * @param {number} tfidfWeight - Weight for TF-IDF (default 0.7)
+     * @param {number} charWeight - Weight for character similarity (default 0.3)
+     * @returns {number} Combined similarity score (0-1)
+     */
+    calculateCombinedSimilarity(sentence1, sentence2, tfidfWeight = 0.7, charWeight = 0.3) {
+        const tfidfScore = this.calculateTFIDFSimilarity(sentence1, sentence2);
+        const charScore = this.calculateCharacterSimilarity(sentence1, sentence2);
+        
+        return (tfidfScore * tfidfWeight) + (charScore * charWeight);
+    }
+
+    /**
+     * Rank sentences by relevance to a query (using combined TF-IDF + character similarity)
      * @param {string} query - Search query
      * @param {number} topN - Number of top results to return (0 = all)
+     * @param {number} tfidfWeight - Weight for TF-IDF similarity (default 0.7)
+     * @param {number} charWeight - Weight for character similarity (default 0.3)
      * @returns {Array<[string, number]>} Array of [sentence, score] pairs, sorted by score
      */
-    rankSentences(query, topN = 0) {
+    rankSentences(query, topN = 0, tfidfWeight = 0.7, charWeight = 0.3) {
         if (!query || typeof query !== 'string') return [];
 
         const sentenceRanks = [];
         
+        // Use original sentences for output, but stemmed tokens for calculations
         for (const sentence of this.sentences) {
-            const similarity = this.calculateTFIDFSimilarity(query, sentence);
+            const similarity = this.calculateCombinedSimilarity(
+                query, 
+                sentence, 
+                tfidfWeight, 
+                charWeight
+            );
             if (similarity > 0) {
                 sentenceRanks.push([sentence, similarity]);
             }
@@ -192,26 +252,26 @@ export class NarrowMindModel {
     }
 
     /**
-     * Get TF value for a token in the corpus
+     * Get TF value for a token in the corpus (using stemmed tokens)
      * @param {string} token - Token to get TF for
      * @returns {number} Term frequency
      */
     getTF(token) {
-        const stemmedToken = this.stemWord(token.toLowerCase());
-        const stemmedTokens = this.parseTokensStemmed(this.rawData);
-        return this.calculateTF(stemmedToken, stemmedTokens);
+        const stemmedToken = this.stem(token.toLowerCase());
+        return this.calculateTF(stemmedToken, this.stemmedTokens);
     }
 
     /**
      * Get statistics for a query token
      * @param {string} token - Token to analyze
-     * @returns {Object} Object with TF and IDF values
+     * @returns {Object} Object with TF and IDF values (using stemmed version)
      */
     getTokenStats(token) {
         const normalizedToken = token.toLowerCase();
-        const stemmedToken = this.stemWord(normalizedToken);
+        const stemmedToken = this.stem(normalizedToken);
         return {
-            token: stemmedToken,
+            token: normalizedToken,
+            stemmed: stemmedToken,
             tf: this.getTF(normalizedToken),
             idf: this.getIDF(stemmedToken)
         };
