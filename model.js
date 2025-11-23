@@ -21,40 +21,27 @@ export class NarrowMindModel {
         
         const lowerWord = word.toLowerCase();
         
-        // Handle common suffixes
-        // -ing, -ed, -er, -est, -ly, -s, -es, -ies
-        if (lowerWord.endsWith('ies') && lowerWord.length > 4) {
-            return lowerWord.slice(0, -3) + 'y';
-        }
-        if (lowerWord.endsWith('es') && lowerWord.length > 4) {
-            return lowerWord.slice(0, -2);
-        }
-        if (lowerWord.endsWith('s') && lowerWord.length > 3) {
-            return lowerWord.slice(0, -1);
-        }
-        if (lowerWord.endsWith('ing') && lowerWord.length > 5) {
-            return lowerWord.slice(0, -3);
-        }
-        if (lowerWord.endsWith('ed') && lowerWord.length > 4) {
-            return lowerWord.slice(0, -2);
-        }
-        if (lowerWord.endsWith('er') && lowerWord.length > 4) {
-            return lowerWord.slice(0, -2);
-        }
-        if (lowerWord.endsWith('est') && lowerWord.length > 5) {
-            return lowerWord.slice(0, -3);
-        }
-        if (lowerWord.endsWith('ly') && lowerWord.length > 4) {
-            return lowerWord.slice(0, -2);
-        }
-        if (lowerWord.endsWith('tion') && lowerWord.length > 6) {
-            return lowerWord.slice(0, -4);
-        }
-        if (lowerWord.endsWith('ness') && lowerWord.length > 6) {
-            return lowerWord.slice(0, -4);
-        }
-        if (lowerWord.endsWith('ment') && lowerWord.length > 6) {
-            return lowerWord.slice(0, -4);
+        // List of suffixes: [suffix, minLength, replacement]
+        // replacement is null if just removing the suffix
+        const suffixes = [
+            ['ies', 4, 'y'],
+            ['es', 4, null],
+            ['s', 3, null],
+            ['ing', 5, null],
+            ['ed', 4, null],
+            ['er', 4, null],
+            ['est', 5, null],
+            ['ly', 4, null],
+            ['tion', 6, null],
+            ['ness', 6, null],
+            ['ment', 6, null]
+        ];
+        
+        for (const [suffix, minLength, replacement] of suffixes) {
+            if (lowerWord.endsWith(suffix) && lowerWord.length > minLength) {
+                const stem = lowerWord.slice(0, -suffix.length);
+                return replacement ? stem + replacement : stem;
+            }
         }
         
         return lowerWord;
