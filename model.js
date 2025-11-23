@@ -22,6 +22,9 @@ export class NarrowMindModel {
         // Also store stemmed tokens for IDF calculation
         this.stemmedTokens = this.parseTokensStemmed(data);
         this.idfCache = this.precomputeIDF();
+        
+        // Build co-occurrence matrix
+        this.coOccurrenceMatrix = this.buildCoOccurrenceMatrix();
     }
     
     /**
