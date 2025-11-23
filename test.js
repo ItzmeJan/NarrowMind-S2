@@ -65,7 +65,10 @@ async function main() {
                 console.log(`   ${sentence}\n`);
             });
         }
-
+        const map = model.ngram(3);
+        console.log(map);
+        const filtered = map.filter(a => a.includes('she'));
+        console.log(filtered);
     } catch (error) {
         console.error(`Error: ${error.message}`);
     } finally {

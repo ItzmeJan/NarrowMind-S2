@@ -279,14 +279,15 @@ export class NarrowMindModel {
 
     ngram(n=2) {
         const map = [];
-        for (var i = 0; i < this.tokens.length-1; i++) {
+        for (var i = 0; i < this.tokens.length-n; i++) {
             const current = []
-            for (var j = 1; k <= n; j++) {
-                const cw = this.tokens[i+j];
+            for (var j = 1; j <= n; j++) {
+                const cw = this.stemmedTokens[i+j];
                 current.push(cw);
             }
             map.push(current);
         }
+        return map;
     }
 }
 
